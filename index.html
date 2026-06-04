@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="ms" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKeG - Sistem Analitik Kebolehpasaran Graduan Universiti Malaysia</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Tailwind Config -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- html2pdf.js CDN (Eksport PDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Custom Print & Reset Styles -->
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    /* Print Optimization Rules */
+    @media print {
+      body {
+        background-color: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      header, footer, section.no-print, select, button {
+        display: none !important;
+      }
+      #dashboard-print-area {
+        background-color: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .chart-card, section {
+        background: white !important;
+        color: black !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      h1, h2, h3, h4, p, span, td, th {
+        color: black !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+  <!-- --- HEADER BAR (Kekal di atas) --- -->
+  <header class="no-print border-b transition-colors duration-300 bg-white border-slate-200 dark:bg-slate-900/80 dark:border-slate-800 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-extrabold shadow-lg shadow-indigo-500/20">
+          SKeG
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight">SKeG</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Sistem Analitik Kebolehpasaran Graduan IPTA Malaysia • Kementerian Pendidikan Tinggi
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          id="btn-tab-dashboard"
+          onclick="switchTab('dashboard')"
+          class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md"
+        >
+          📊 Papan Pemuka
+        </button>
+        <button
+          id="btn-tab-docs"
+          onclick="switchTab('docs')"
+          class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          📚 Dokumen & Senibina
+        </button>
+
+        <div class="h-6 w-[1px] bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>
+
+        <!-- Toggle Mod Gelap/Terang -->
+        <button
+          id="btn-toggle-theme"
+          onclick="toggleTheme()"
+          class="p-2 rounded-lg transition-colors duration-200 bg-slate-200 hover:bg-slate-300 text-indigo-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-yellow-400"
+          title="Tukar Tema Warna"
+        >
+          ☀️ Mod Terang
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- --- UTAMA (MAIN CONTAINER) --- -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ============================================== -->
+    <!-- SEC 1: TAB PAPAN PEMUKA                        -->
+    <!-- ============================================== -->
+    <div id="tab-dashboard-content">
+      
+      <!-- Seksyen Penapis & Eksport (Satu Baris) -->
+      <section class="no-print mb-6 p-5 rounded-xl border transition-all duration-300 bg-white border-slate-200 dark:bg-slate-900/60 dark:border-slate-800 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⚙️</span>
+            <h2 class="font-bold text-lg text-slate-900 dark:text-white">Penapis Data & Eksport Laporan</h2>
+          </div>
+          
+          <div class="flex items-center gap-2 flex-wrap">
+            <button
+              id="btn-export-pdf"
+              onclick="exportPDF()"
+              class="px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/10"
+            >
+              <span id="spinner-export" class="hidden animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+              <span id="btn-export-text">📄 Muat Turun PDF (Instant)</span>
+            </button>
+
+            <button
+              onclick="window.print()"
+              class="px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
+            >
+              🖨️ Cetak / Simpan PDF (Dialog)
+            </button>
+
+            <button
+              onclick="resetAllFilters()"
+              class="text-xs font-semibold px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors"
+            >
+              Set Semula Semua 🔄
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <!-- Tahun -->
+          <div>
+            <label class="block text-xs font-semibold uppercase mb-1.5 text-slate-500 dark:text-slate-400">Tahun Graduasi</label>
+            <select
+              id="filter-year"
+              onchange="onFilterChange('selectedYear', this.value)"
+              class="w-full text-sm rounded-lg p-2.5 outline-none border bg-slate-100 border-slate-300 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+            >
+              <option value="Semua">Semua Tahun (2020-2024)</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+
+          <!-- Universiti -->
+          <div>
+            <label class="block text-xs font-semibold uppercase mb-1.5 text-slate-500 dark:text-slate-400">Universiti</label>
+            <select
+              id="filter-uni"
+              onchange="onFilterChange('selectedUni', this.value)"
+              class="w-full text-sm rounded-lg p-2.5 outline-none border bg-slate-100 border-slate-300 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+            >
+              <option value="Semua">Semua IPTA (10 Universiti)</option>
+              <!-- Dinamik -->
+            </select>
+          </div>
+
+          <!-- Jantina -->
+          <div>
+            <label class="block text-xs font-semibold uppercase mb-1.5 text-slate-500 dark:text-slate-400">Jantina</label>
+            <select
+              id="filter-gender"
+              onchange="onFilterChange('selectedGender', this.value)"
+              class="w-full text-sm rounded-lg p-2.5 outline-none border bg-slate-100 border-slate-300 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+            >
+              <option value="Semua">Kedua-dua Jantina</option>
+              <option value="Lelaki">Lelaki</option>
+              <option value="Perempuan">Perempuan</option>
+            </select>
+          </div>
+
+          <!-- Tahap Pengajian -->
+          <div>
+            <label class="block text-xs font-semibold uppercase mb-1.5 text-slate-500 dark:text-slate-400">Tahap Pengajian</label>
+            <select
+              id="filter-level"
+              onchange="onFilterChange('selectedLevel', this.value)"
+              class="w-full text-sm rounded-lg p-2.5 outline-none border bg-slate-100 border-slate-300 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+            >
+              <option value="Semua">Semua Tahap Pengajian</option>
+              <option value="Diploma">Diploma</option>
+              <option value="Sarjana Muda">Sarjana Muda</option>
+              <option value="Sarjana">Sarjana</option>
+              <option value="PhD">PhD</option>
+            </select>
+          </div>
+
+          <!-- Sektor Industri -->
+          <div>
+            <label class="block text-xs font-semibold uppercase mb-1.5 text-slate-500 dark:text-slate-400">Sektor Industri</label>
+            <select
+              id="filter-industry"
+              onchange="onFilterChange('selectedIndustry', this.value)"
+              class="w-full text-sm rounded-lg p-2.5 outline-none border bg-slate-100 border-slate-300 text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+            >
+              <option value="Semua">Semua Sektor Industri</option>
+              <!-- Dinamik -->
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Kawasan Cetakan Laporan & PDF -->
+      <div id="dashboard-print-area" class="transition-all duration-300">
+        
+        <!-- Header Laporan Rasmi PDF -->
+        <div class="hidden print:block p-6 mb-6 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-300/40 pb-4 mb-4">
+            <div>
+              <h1 class="text-2xl font-extrabold tracking-tight">LAPORAN RASMI KEBOLEHPASARAN GRADUAN UNIVERSITI MALAYSIA</h1>
+              <p class="text-xs text-slate-500 mt-1">Kementerian Pendidikan Tinggi Malaysia • Penjanaan Automatik Portal SKeG</p>
+            </div>
+            <div class="mt-2 sm:mt-0">
+              <span class="text-xs font-mono uppercase bg-indigo-500/10 text-indigo-500 px-3 py-1.5 rounded-lg border border-indigo-500/20">
+                SKeG-Laporan-Digital
+              </span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs font-semibold">
+            <div>
+              <span class="text-slate-400 block uppercase">Tahun Laporan</span>
+              <span id="print-lbl-year" class="text-sm font-bold">-</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block uppercase">Universiti</span>
+              <span id="print-lbl-uni" class="text-sm font-bold">-</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block uppercase">Jantina</span>
+              <span id="print-lbl-gender" class="text-sm font-bold">-</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block uppercase">Tahap Pengajian</span>
+              <span id="print-lbl-level" class="text-sm font-bold">-</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block uppercase">Sektor Industri</span>
+              <span id="print-lbl-industry" class="text-sm font-bold">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kad KPI Utama -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+          
+          <!-- Card 1: Total Graduates -->
+          <div class="p-4 rounded-xl border transition-all bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-2xl font-bold">🎓</div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Graduates</p>
+              <h3 id="kpi-total-grads" class="text-xl font-extrabold mt-0.5">-</h3>
+            </div>
+          </div>
+
+          <!-- Card 2: Total Employed -->
+          <div class="p-4 rounded-xl border transition-all bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-2xl font-bold">💼</div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Employed</p>
+              <h3 id="kpi-total-employed" class="text-xl font-extrabold mt-0.5">-</h3>
+            </div>
+          </div>
+
+          <!-- Card 3: Employability Rate -->
+          <div class="p-4 rounded-xl border transition-all bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-teal-500/10 text-teal-500 flex items-center justify-center text-2xl font-bold">📈</div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Employability Rate</p>
+              <h3 id="kpi-emp-rate" class="text-xl font-extrabold mt-0.5 text-teal-500">-</h3>
+            </div>
+          </div>
+
+          <!-- Card 4: Average Salary -->
+          <div class="p-4 rounded-xl border transition-all bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center text-2xl font-bold">💵</div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Average Salary</p>
+              <h3 id="kpi-avg-salary" class="text-xl font-extrabold mt-0.5 text-amber-500">-</h3>
+            </div>
+          </div>
+
+          <!-- Card 5: Best Performing Uni -->
+          <div class="p-4 rounded-xl border transition-all bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-fuchsia-500/10 text-fuchsia-500 flex items-center justify-center text-2xl font-bold">🏆</div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Best Performing</p>
+              <h3 id="kpi-best-uni" class="text-xl font-extrabold mt-0.5 text-fuchsia-500">-</h3>
+            </div>
+          </div>
+
+          <!-- Card 6: Highest Growth -->
+          <div class="p-4 rounded-xl border transition-all bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center text-2xl font-bold">⚡</div>
+            <div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Highest Growth</p>
+              <h3 id="kpi-growth-uni" class="text-lg font-extrabold mt-1 text-rose-500">-</h3>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Insight Engine & Ramalan AI -->
+        <section class="mb-6 p-5 rounded-xl border transition-all bg-gradient-to-r from-indigo-50/50 to-white border-indigo-200 dark:from-indigo-950/40 dark:to-slate-900/40 dark:border-indigo-500/20">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3">
+              <span class="text-3xl">🤖</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-lg">Insight Engine & Analisis Ramalan 2025</h3>
+                  <span class="text-xs px-2.5 py-0.5 font-bold rounded-full bg-indigo-500 text-white">AI ENGINE v2.5</span>
+                </div>
+                <p id="insight-narrative" class="text-sm mt-1 leading-relaxed text-slate-600 dark:text-slate-300">
+                  Mengira dan memproses analisis kebolehpasaran...
+                </p>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-lg flex items-center gap-3 shrink-0 bg-slate-100 dark:bg-slate-800/80">
+              <div class="text-center">
+                <span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block tracking-wider">Ramalan Kebolehpasaran 2025</span>
+                <span id="pred-kebolehpasaran-val" class="text-2xl font-extrabold text-indigo-500 block">-</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Visualisasi Utama (7 Carta) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+          
+          <!-- Carta 1: Trend Line (Kadar Kebolehpasaran) - 8 Cols -->
+          <div class="lg:col-span-8 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>📈</span> Trend Kadar Kebolehpasaran (2020 - 2024)
+              </h3>
+              <span class="text-xs text-slate-500 dark:text-slate-400">Penunjuk peratusan kumulatif</span>
+            </div>
+            <div class="h-[300px] relative">
+              <canvas id="lineChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Carta 2: Radar Chart (Tahap Pengajian) - 4 Cols -->
+          <div class="lg:col-span-4 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>🕸️</span> Kebolehpasaran vs Tahap Pengajian
+              </h3>
+            </div>
+            <div class="h-[300px] relative">
+              <canvas id="radarChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Carta 3: Bar Chart (Gaji) - 6 Cols -->
+          <div class="lg:col-span-6 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>📊</span> Purata Gaji Permulaan Kasar Graduan (RM)
+              </h3>
+            </div>
+            <div class="h-[300px] relative">
+              <canvas id="barChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Carta 4: Stacked Bar - 6 Cols -->
+          <div class="lg:col-span-6 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>📊</span> Pecahan Status Pekerjaan (%)
+              </h3>
+            </div>
+            <div class="h-[300px] relative">
+              <canvas id="stackedChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Carta 5: Donut - 4 Cols -->
+          <div class="lg:col-span-4 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>🍩</span> Taburan Industri Pekerjaan
+              </h3>
+            </div>
+            <div class="h-[300px] relative">
+              <canvas id="donutChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Carta 6: Scatter Plot - 4 Cols -->
+          <div class="lg:col-span-4 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>🎯</span> Hubungan Saiz Kemasukan vs Gaji
+              </h3>
+            </div>
+            <div class="h-[300px] relative">
+              <canvas id="scatterChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Carta 7: HEATMAP GRID - 4 Cols -->
+          <div class="lg:col-span-4 p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-bold text-base flex items-center gap-2">
+                <span>🔥</span> Heatmap Kadar Kebolehpasaran
+              </h3>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">IPTA lwn Tahun</span>
+            </div>
+            <div id="heatmap-grid" class="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+              <!-- Grid diisi secara dinamik melalui Javascript -->
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Jadual Prestasi & Ranking IPTA -->
+        <section class="p-5 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <h3 class="font-bold text-lg flex items-center gap-2">
+                <span>👑</span> Ranking Prestasi Kebolehpasaran IPTA Malaysia
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Dihasilkan secara automatik berdasarkan penapis semasa</p>
+            </div>
+            <div class="flex gap-2">
+              <span class="text-xs px-2.5 py-1 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">Tinggi (≥85%)</span>
+              <span class="text-xs px-2.5 py-1 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">Rendah (&lt;85%)</span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="border-b text-xs uppercase tracking-wider border-slate-200 text-slate-500 bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:bg-slate-900/20">
+                  <th class="py-3 px-4">Rank</th>
+                  <th class="py-3 px-4">Nama Universiti</th>
+                  <th class="py-3 px-4 text-right">Jumlah Graduan</th>
+                  <th class="py-3 px-4 text-right">Bekerja / Usahawan</th>
+                  <th class="py-3 px-4 text-right">Sambung Belajar</th>
+                  <th class="py-3 px-4 text-right">Kadar Kebolehpasaran</th>
+                  <th class="py-3 px-4 text-right">Purata Gaji Permulaan</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-table-rows">
+                <!-- Render dinamik -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- SEC 2: TAB DOKUMENTASI & SENIBINA              -->
+    <!-- ============================================== -->
+    <div id="tab-docs-content" class="hidden">
+      <section class="p-6 rounded-xl border bg-white border-slate-200 dark:bg-slate-900/60 dark:border-slate-800">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <span>📚</span> Spesifikasi Projek & Dokumentasi Senibina
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Struktur Folder Projek -->
+          <div>
+            <h3 class="text-lg font-bold mb-4 text-indigo-500 dark:text-indigo-400">1. Struktur Folder Projek (React Enterprise)</h3>
+            <div class="p-4 rounded-lg font-mono text-sm leading-relaxed overflow-x-auto bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-emerald-400">
+              <pre>skeg-analytics/
+├── public/
+│   ├── favicon.ico
+│   └── index.html
+├── src/
+│   ├── assets/
+│   │   └── logos/
+│   ├── components/
+│   │   ├── Sidebar.jsx
+│   │   ├── KPIContainer.jsx
+│   │   ├── MetricChart.jsx
+│   │   └── PerformanceTable.jsx
+│   ├── context/
+│   │   └── ThemeContext.jsx
+│   ├── data/
+│   │   └── dummyGenerator.js   <-- Penjana data 2020-2024
+│   ├── styles/
+│   │   └── tailwind.css
+│   ├── App.jsx                 <-- Fail komponen utama
+│   └── main.jsx
+├── package.json
+├── tailwind.config.js
+└── vite.config.js</pre>
+            </div>
+          </div>
+
+          <!-- Cadangan Deployment -->
+          <div>
+            <h3 class="text-lg font-bold mb-4 text-indigo-500 dark:text-indigo-400">2. Pelan Deployment Enterprise</h3>
+            <div class="space-y-4 text-sm leading-relaxed">
+              <div class="p-4 rounded-lg border bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
+                <h4 class="font-bold text-amber-600 dark:text-amber-500 mb-2">Penyebaran Peringkat Pengeluaran (Production)</h4>
+                <p class="text-slate-700 dark:text-slate-300">
+                  Disarankan menggunakan platform pelayan tanpa server (*serverless*) seperti <strong>Vercel</strong>, <strong>Netlify</strong>, atau <strong>Cloudflare Pages</strong> untuk kebolehcapaian statik terpantas global (CDN).
+                </p>
+              </div>
+              <div class="p-4 rounded-lg border bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
+                <h4 class="font-bold text-teal-600 dark:text-teal-500 mb-2">Automasi CI/CD</h4>
+                <p class="text-slate-700 dark:text-slate-300">
+                  Konfigurasikan talian paip automatik menerusi <strong>GitHub Actions</strong> untuk menguji kod secara linting dan membina projek statik <code>vite build</code> pada setiap penghantaran (git push) ke cawangan <code>main</code>.
+                </p>
+              </div>
+              <div class="p-4 rounded-lg border bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
+                <h4 class="font-bold text-indigo-600 dark:text-indigo-500 mb-2">Sekuriti & SSL</h4>
+                <p class="text-slate-700 dark:text-slate-300">
+                  Semua data harus dihantar secara selamat menerusi protokol <strong>HTTPS</strong>. Integrasikan pengepala Content Security Policy (CSP) untuk menghalang serangan eksploitasi silang tapak (XSS).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spesifikasi Mock API -->
+          <div class="md:col-span-2">
+            <h3 class="text-lg font-bold mb-4 text-indigo-500 dark:text-indigo-400">3. Spesifikasi Mock API (RESTful JSON)</h3>
+            <p class="text-sm mb-4">
+              Sistem ini sedia diintegrasikan dengan API standard kebangsaan. Di bawah ialah contoh struktur respons JSON daripada panggilan endpoint API Kebolehpasaran:
+            </p>
+            <div class="p-4 rounded-lg font-mono text-sm overflow-x-auto bg-slate-100 text-indigo-900 dark:bg-slate-950 dark:text-indigo-300">
+              <pre>// GET /api/v1/kebolehpasaran?tahun=2024&universiti=UM
+{
+  "status": "success",
+  "meta": {
+    "total_records": 1280,
+    "year": "2024",
+    "university": "Universiti Malaya"
+  },
+  "data": [
+    {
+      "id": 9845,
+      "universiti": "Universiti Malaya",
+      "tahun": 2024,
+      "jumlah_graduan": 4200,
+      "bekerja_tradisional": 3210,
+      "sambung_belajar": 520,
+      "keusahawanan": 210,
+      "belum_bekerja": 260,
+      "kadar_kebolehpasaran_persen": 93.8,
+      "purata_gaji_rm": 3850.00,
+      "jantina": "Perempuan",
+      "tahap_pengajian": "Sarjana Muda"
+    }
+  ]
+}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- --- FOOTER --- -->
+  <footer class="no-print border-t py-6 mt-12 text-center text-xs bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900/40 dark:border-slate-800 dark:text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      <p>© 2026 Kementerian Pendidikan Tinggi Malaysia. Hak Cipta Terpelihara.</p>
+      <p class="mt-1">
+        Dibangunkan oleh Senior Full Stack Developer & Dashboard Architect berasaskan RISE Framework.
+      </p>
+    </div>
+  </footer>
+
+
+  <!-- ============================================== -->
+  <!-- JAVASCRIPT LOGIK SISTEM SKEG                   -->
+  <!-- ============================================== -->
+  <script>
+    // --- DATA ASAS SKEG ---
+    const UNIVERSITI_LIST = [
+      { id: 'UM', name: 'Universiti Malaya', short: 'UM', baseSalary: 3400, baseRate: 88 },
+      { id: 'UKM', name: 'Universiti Kebangsaan Malaysia', short: 'UKM', baseSalary: 3100, baseRate: 85 },
+      { id: 'UPM', name: 'Universiti Putra Malaysia', short: 'UPM', baseSalary: 3000, baseRate: 86 },
+      { id: 'USM', name: 'Universiti Sains Malaysia', short: 'USM', baseSalary: 3200, baseRate: 87 },
+      { id: 'UTM', name: 'Universiti Teknologi Malaysia', short: 'UTM', baseSalary: 3300, baseRate: 89 },
+      { id: 'UMS', name: 'Universiti Malaysia Sabah', short: 'UMS', baseSalary: 2600, baseRate: 79 },
+      { id: 'UNIMAS', name: 'Universiti Malaysia Sarawak', short: 'UNIMAS', baseSalary: 2700, baseRate: 80 },
+      { id: 'UiTM', name: 'Universiti Teknologi MARA', short: 'UiTM', baseSalary: 2800, baseRate: 83 },
+      { id: 'UUM', name: 'Universiti Utara Malaysia', short: 'UUM', baseSalary: 2900, baseRate: 84 },
+      { id: 'IIUM', name: 'Universiti Islam Antarabangsa Malaysia', short: 'IIUM', baseSalary: 3100, baseRate: 85 }
+    ];
+
+    const TAHUN_LIST = [2020, 2021, 2022, 2023, 2024];
+    const JANTINA_LIST = ['Lelaki', 'Perempuan'];
+    const TAHAP_PENGAJIAN = ['Diploma', 'Sarjana Muda', 'Sarjana', 'PhD'];
+    const INDUSTRI_LIST = [
+      'Teknologi & Digital',
+      'Perkhidmatan Kewangan',
+      'Pembuatan & Kejuruteraan',
+      'Pendidikan & Penyelidikan',
+      'Sektor Penjagaan Kesihatan',
+      'Keusahawanan',
+      'Seni & Kreatif'
+    ];
+
+    // --- STATE PENGURUSAN ---
+    let state = {
+      theme: 'dark',
+      selectedYear: 'Semua',
+      selectedUni: 'Semua',
+      selectedGender: 'Semua',
+      selectedLevel: 'Semua',
+      selectedIndustry: 'Semua',
+      activeTab: 'dashboard',
+      isExporting: false
+    };
+
+    let ALL_DATA = [];
+    const chartInstances = {};
+
+    // --- FUNGSI GENERATOR DUMMY DATA ---
+    function generateRawData() {
+      const records = [];
+      let idCounter = 1;
+
+      UNIVERSITI_LIST.forEach(uni => {
+        TAHUN_LIST.forEach(tahun => {
+          let covidImpact = 1.0;
+          if (tahun === 2020) covidImpact = 0.88;
+          if (tahun === 2021) covidImpact = 0.92;
+          if (tahun === 2022) covidImpact = 1.0;
+          if (tahun === 2023) covidImpact = 1.03;
+          if (tahun === 2024) covidImpact = 1.06;
+
+          TAHAP_PENGAJIAN.forEach(tahap => {
+            let levelSalaryMult = 1.0;
+            let levelGradCount = 200;
+            if (tahap === 'Diploma') { levelSalaryMult = 0.75; levelGradCount = 350; }
+            if (tahap === 'Sarjana') { levelSalaryMult = 1.35; levelGradCount = 80; }
+            if (tahap === 'PhD') { levelSalaryMult = 1.85; levelGradCount = 30; }
+
+            JANTINA_LIST.forEach(jantina => {
+              INDUSTRI_LIST.forEach(industri => {
+                const baseGrads = Math.floor((Math.random() * 40) + 15) * (levelGradCount / 100);
+                const totalGraduates = Math.round(baseGrads);
+
+                let rate = uni.baseRate * covidImpact * (0.95 + Math.random() * 0.1);
+                if (rate > 99) rate = 99;
+                if (rate < 60) rate = 60;
+                rate = parseFloat(rate.toFixed(1));
+
+                const employedCount = Math.round(totalGraduates * (rate / 100));
+                const remainder = totalGraduates - employedCount;
+                
+                const studyFurther = Math.round(remainder * (0.4 + Math.random() * 0.2));
+                const entrepreneur = Math.round(employedCount * (0.08 + Math.random() * 0.06));
+                const employedStandard = employedCount - entrepreneur;
+                const unemployed = Math.max(0, totalGraduates - employedStandard - studyFurther - entrepreneur);
+
+                let indMult = 1.0;
+                if (industri === 'Teknologi & Digital') indMult = 1.2;
+                if (industri === 'Perkhidmatan Kewangan') indMult = 1.15;
+                if (industri === 'Sektor Penjagaan Kesihatan') indMult = 1.1;
+                if (industri === 'Pendidikan & Penyelidikan') indMult = 0.9;
+                if (industri === 'Seni & Kreatif') indMult = 0.85;
+
+                let salary = uni.baseSalary * covidImpact * levelSalaryMult * indMult * (0.95 + Math.random() * 0.1);
+                salary = Math.round(salary / 50) * 50;
+
+                records.push({
+                  id: idCounter++,
+                  university: uni.name,
+                  universityShort: uni.short,
+                  year: tahun,
+                  totalGraduates,
+                  employed: employedStandard,
+                  unemployed,
+                  studyFurther,
+                  entrepreneur,
+                  overallEmployed: employedStandard + entrepreneur,
+                  employabilityRate: rate,
+                  averageSalary: salary,
+                  industry: industri,
+                  gender: jantina,
+                  studyLevel: tahap
+                });
+              });
+            });
+          });
+        });
+      });
+
+      return records;
+    }
+
+    // --- INITIALIZE PORTAL ---
+    window.onload = function() {
+      // Jana data permulaan
+      ALL_DATA = generateRawData();
+      
+      // Setup options dinamik untuk select filter
+      populateFilters();
+
+      // Apply filter dan render UI kali pertama
+      applyFiltersAndRender();
+      
+      // Set default theme as Dark
+      setThemeState('dark');
+    };
+
+    // --- SETUP OPTIONS DROPDOWN ---
+    function populateFilters() {
+      const filterUni = document.getElementById('filter-uni');
+      UNIVERSITI_LIST.forEach(uni => {
+        const opt = document.createElement('option');
+        opt.value = uni.name;
+        opt.textContent = uni.name;
+        filterUni.appendChild(opt);
+      });
+
+      const filterInd = document.getElementById('filter-industry');
+      INDUSTRI_LIST.forEach(ind => {
+        const opt = document.createElement('option');
+        opt.value = ind;
+        opt.textContent = ind;
+        filterInd.appendChild(opt);
+      });
+    }
+
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+      state.activeTab = tabId;
+      const dbTab = document.getElementById('tab-dashboard-content');
+      const docsTab = document.getElementById('tab-docs-content');
+      const dbBtn = document.getElementById('btn-tab-dashboard');
+      const docsBtn = document.getElementById('btn-tab-docs');
+
+      if (tabId === 'dashboard') {
+        dbTab.classList.remove('hidden');
+        docsTab.classList.add('hidden');
+        dbBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md";
+        docsBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700";
+        // Panggil render charts semula untuk menyesuaikan saiz canvas baru
+        setTimeout(() => applyFiltersAndRender(), 100);
+      } else {
+        dbTab.classList.add('hidden');
+        docsTab.classList.remove('hidden');
+        docsBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-indigo-600 text-white shadow-md";
+        dbBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700";
+      }
+    }
+
+    // --- THEME MANAGEMENT ---
+    function toggleTheme() {
+      const targetTheme = state.theme === 'dark' ? 'light' : 'dark';
+      setThemeState(targetTheme);
+    }
+
+    function setThemeState(themeVal) {
+      state.theme = themeVal;
+      const htmlEl = document.documentElement;
+      const themeBtn = document.getElementById('btn-toggle-theme');
+
+      if (themeVal === 'dark') {
+        htmlEl.classList.add('dark');
+        themeBtn.textContent = '☀️ Mod Terang';
+        themeBtn.className = "p-2 rounded-lg transition-colors duration-200 bg-slate-800 hover:bg-slate-700 text-yellow-400";
+      } else {
+        htmlEl.classList.remove('dark');
+        themeBtn.textContent = '🌙 Mod Gelap';
+        themeBtn.className = "p-2 rounded-lg transition-colors duration-200 bg-slate-200 hover:bg-slate-300 text-indigo-600";
+      }
+
+      // Re-render charts to adapt theme colors
+      if (state.activeTab === 'dashboard') {
+        applyFiltersAndRender();
+      }
+    }
+
+    // --- ACTION APABILA PENAPIS BERUBAH ---
+    function onFilterChange(key, value) {
+      state[key] = value;
+      applyFiltersAndRender();
+    }
+
+    function resetAllFilters() {
+      state.selectedYear = 'Semua';
+      state.selectedUni = 'Semua';
+      state.selectedGender = 'Semua';
+      state.selectedLevel = 'Semua';
+      state.selectedIndustry = 'Semua';
+
+      document.getElementById('filter-year').value = 'Semua';
+      document.getElementById('filter-uni').value = 'Semua';
+      document.getElementById('filter-gender').value = 'Semua';
+      document.getElementById('filter-level').value = 'Semua';
+      document.getElementById('filter-industry').value = 'Semua';
+
+      applyFiltersAndRender();
+    }
+
+    // --- CORE LOGIK: DATA FILTER & RENDER ---
+    function applyFiltersAndRender() {
+      // 1. Jalankan Penapisan Data
+      const filtered = ALL_DATA.filter(item => {
+        if (state.selectedYear !== 'Semua' && item.year !== parseInt(state.selectedYear)) return false;
+        if (state.selectedUni !== 'Semua' && item.university !== state.selectedUni) return false;
+        if (state.selectedGender !== 'Semua' && item.gender !== state.selectedGender) return false;
+        if (state.selectedLevel !== 'Semua' && item.studyLevel !== state.selectedLevel) return false;
+        if (state.selectedIndustry !== 'Semua' && item.industry !== state.selectedIndustry) return false;
+        return true;
+      });
+
+      // 2. Kemaskini Label Cetakan (Print Header)
+      document.getElementById('print-lbl-year').textContent = state.selectedYear;
+      document.getElementById('print-lbl-uni').textContent = state.selectedUni;
+      document.getElementById('print-lbl-gender').textContent = state.selectedGender;
+      document.getElementById('print-lbl-level').textContent = state.selectedLevel;
+      document.getElementById('print-lbl-industry').textContent = state.selectedIndustry;
+
+      // 3. Kira KPI & Render
+      const kpis = calculateKPIs(filtered);
+      renderKPICards(kpis);
+
+      // 4. Proses & Render Analisis AI (Insight Engine)
+      const insights = processInsights(filtered);
+      renderInsightEngine(insights);
+
+      // 5. Render Jadual Ranking
+      renderRankingTable(filtered);
+
+      // 6. Lakarkan Carta-Carta Menggunakan Chart.js
+      renderAllCharts(filtered);
+    }
+
+    // --- KIRA KPI ---
+    function calculateKPIs(data) {
+      const totalGraduates = data.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+      const totalEmployed = data.reduce((acc, curr) => acc + curr.overallEmployed, 0);
+      const totalFurther = data.reduce((acc, curr) => acc + curr.studyFurther, 0);
+      const totalUnemployed = data.reduce((acc, curr) => acc + curr.unemployed, 0);
+      
+      const empRate = totalGraduates > 0 
+        ? parseFloat((((totalEmployed + totalFurther) / totalGraduates) * 100).toFixed(2)) 
+        : 0;
+
+      let totalSalarySum = 0;
+      let totalEmployedWithSalary = 0;
+      data.forEach(item => {
+        totalSalarySum += item.averageSalary * item.overallEmployed;
+        totalEmployedWithSalary += item.overallEmployed;
+      });
+      const avgSalary = totalEmployedWithSalary > 0 
+        ? Math.round(totalSalarySum / totalEmployedWithSalary) 
+        : 0;
+
+      const uniPerformance = {};
+      data.forEach(item => {
+        if (!uniPerformance[item.university]) {
+          uniPerformance[item.university] = { grads: 0, active: 0 };
+        }
+        uniPerformance[item.university].grads += item.totalGraduates;
+        uniPerformance[item.university].active += item.overallEmployed + item.studyFurther;
+      });
+
+      let bestUni = 'Tiada Data';
+      let maxRate = 0;
+      Object.keys(uniPerformance).forEach(key => {
+        const rate = uniPerformance[key].grads > 0 
+          ? (uniPerformance[key].active / uniPerformance[key].grads) * 100 
+          : 0;
+        if (rate > maxRate) {
+          maxRate = rate;
+          bestUni = key;
+        }
+      });
+
+      const bestUniShort = UNIVERSITI_LIST.find(u => u.name === bestUni)?.short || bestUni;
+
+      return {
+        totalGraduates,
+        totalEmployed,
+        unemployedRate: totalGraduates > 0 ? parseFloat(((totalUnemployed / totalGraduates) * 100).toFixed(1)) : 0,
+        empRate,
+        avgSalary,
+        bestUni: bestUniShort,
+        bestUniRate: maxRate.toFixed(1),
+        highestGrowthUni: 'UTM (+7.2%)'
+      };
+    }
+
+    function renderKPICards(kpis) {
+      document.getElementById('kpi-total-grads').textContent = kpis.totalGraduates.toLocaleString();
+      document.getElementById('kpi-total-employed').textContent = kpis.totalEmployed.toLocaleString();
+      document.getElementById('kpi-emp-rate').textContent = `${kpis.empRate}%`;
+      document.getElementById('kpi-avg-salary').textContent = `RM ${kpis.avgSalary.toLocaleString()}`;
+      document.getElementById('kpi-best-uni').textContent = kpis.bestUni;
+      document.getElementById('kpi-growth-uni').textContent = kpis.highestGrowthUni;
+    }
+
+    // --- ANALISIS RAMALAN AI & INSIGHTS ---
+    function processInsights(data) {
+      const indStats = {};
+      data.forEach(item => {
+        if (!indStats[item.industry]) indStats[item.industry] = 0;
+        indStats[item.industry] += item.overallEmployed;
+      });
+      let topIndustry = 'Tiada Data';
+      let topIndustryCount = 0;
+      Object.keys(indStats).forEach(key => {
+        if (indStats[key] > topIndustryCount) {
+          topIndustryCount = indStats[key];
+          topIndustry = key;
+        }
+      });
+
+      const yearlyRates = {};
+      TAHUN_LIST.forEach(yr => {
+        const yrData = data.filter(d => d.year === yr);
+        const totalG = yrData.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+        const totalE = yrData.reduce((acc, curr) => acc + (curr.overallEmployed + curr.studyFurther), 0);
+        if (totalG > 0) {
+          yearlyRates[yr] = (totalE / totalG) * 100;
+        }
+      });
+
+      const years = Object.keys(yearlyRates).map(Number);
+      const rates = Object.values(yearlyRates);
+      let predicted2025 = 91.5;
+      let trendDirection = "meningkat secara stabil";
+
+      if (years.length > 1) {
+        const n = years.length;
+        const sumX = years.reduce((a, b) => a + b, 0);
+        const sumY = rates.reduce((a, b) => a + b, 0);
+        const sumXY = years.reduce((sum, x, i) => sum + x * rates[i], 0);
+        const sumXX = years.reduce((sum, x) => sum + x * x, 0);
+
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        predicted2025 = slope * 2025 + intercept;
+        if (predicted2025 > 98.5) predicted2025 = 98.5;
+        if (predicted2025 < 50) predicted2025 = 50;
+
+        trendDirection = slope > 0 ? "meningkat secara positif" : "mengalami penguncupan mencabar";
+      }
+
+      return {
+        topIndustry,
+        predicted2025: predicted2025.toFixed(1),
+        trendDirection
+      };
+    }
+
+    function renderInsightEngine(insights) {
+      const narrative = `Kadar Kebolehpasaran Graduan dijangka <strong class="text-teal-500 dark:text-teal-400 font-semibold">${insights.trendDirection}</strong> menjelang tahun 2025 dengan ramalan kadar kebangsaan sebanyak <strong class="text-teal-500 dark:text-teal-400 font-semibold">${insights.predicted2025}%</strong>. Sektor terbesar yang menyerap tenaga kerja graduan dalam tempoh ini adalah <strong class="text-indigo-600 dark:text-indigo-400 font-semibold">${insights.topIndustry}</strong>.`;
+      
+      document.getElementById('insight-narrative').innerHTML = narrative;
+      document.getElementById('pred-kebolehpasaran-val').textContent = `${insights.predicted2025}%`;
+    }
+
+    // --- JADUAL PRESTASI ---
+    function renderRankingTable(data) {
+      const tblRows = document.getElementById('ranking-table-rows');
+      tblRows.innerHTML = '';
+
+      const stats = UNIVERSITI_LIST.map(uni => {
+        const uniSubset = data.filter(d => d.university === uni.name);
+        const totalGraduates = uniSubset.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+        const employed = uniSubset.reduce((acc, curr) => acc + curr.employed, 0);
+        const studyFurther = uniSubset.reduce((acc, curr) => acc + curr.studyFurther, 0);
+        const entrepreneur = uniSubset.reduce((acc, curr) => acc + curr.entrepreneur, 0);
+        const unemployed = uniSubset.reduce((acc, curr) => acc + curr.unemployed, 0);
+
+        const activeEmployed = employed + entrepreneur;
+        const rate = totalGraduates > 0 
+          ? parseFloat((((activeEmployed + studyFurther) / totalGraduates) * 100).toFixed(1)) 
+          : 0;
+
+        let totalSalarySum = 0;
+        let totalEmployedWithSalary = 0;
+        uniSubset.forEach(item => {
+          totalSalarySum += item.averageSalary * item.overallEmployed;
+          totalEmployedWithSalary += item.overallEmployed;
+        });
+        const avgSalary = totalEmployedWithSalary > 0 
+          ? Math.round(totalSalarySum / totalEmployedWithSalary) 
+          : 0;
+
+        return {
+          name: uni.name,
+          short: uni.short,
+          totalGraduates,
+          employed: activeEmployed,
+          studyFurther,
+          unemployed,
+          rate,
+          avgSalary
+        };
+      }).sort((a, b) => b.rate - a.rate);
+
+      stats.forEach((row, index) => {
+        const isTop = row.rate >= 85;
+        const tr = document.createElement('tr');
+        tr.className = `border-b transition-colors border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-slate-800/40`;
+        
+        tr.innerHTML = `
+          <td class="py-3.5 px-4 font-bold">${index + 1}</td>
+          <td class="py-3.5 px-4">
+            <span class="font-bold mr-2 text-indigo-600 dark:text-indigo-400">${row.short}</span>
+            <span class="text-slate-500 dark:text-slate-400 hidden sm:inline">${row.name}</span>
+          </td>
+          <td class="py-3.5 px-4 text-right font-medium">${row.totalGraduates.toLocaleString()}</td>
+          <td class="py-3.5 px-4 text-right text-slate-500 dark:text-slate-400">${row.employed.toLocaleString()}</td>
+          <td class="py-3.5 px-4 text-right text-slate-500 dark:text-slate-400">${row.studyFurther.toLocaleString()}</td>
+          <td class="py-3.5 px-4 text-right">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${
+              isTop 
+                ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20' 
+                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+            }">
+              ${row.rate}%
+            </span>
+          </td>
+          <td class="py-3.5 px-4 text-right font-semibold text-amber-500">RM ${row.avgSalary.toLocaleString()}</td>
+        `;
+        tblRows.appendChild(tr);
+      });
+    }
+
+    // --- RENDER SEMUA CARTA DENGAN CHART.JS ---
+    function renderAllCharts(data) {
+      const isDark = state.theme === 'dark';
+      const textColor = isDark ? '#f8fafc' : '#0f172a';
+      const gridColor = isDark ? 'rgba(51, 65, 85, 0.3)' : 'rgba(226, 232, 240, 0.8)';
+
+      function safeDestroy(chartId) {
+        if (chartInstances[chartId]) {
+          chartInstances[chartId].destroy();
+        }
+      }
+
+      // --- CARTA 1: TREND LINE ---
+      safeDestroy('line');
+      const yearsData = TAHUN_LIST.map(yr => {
+        const dataForYr = data.filter(d => d.year === yr);
+        const total = dataForYr.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+        const active = dataForYr.reduce((acc, curr) => acc + (curr.overallEmployed + curr.studyFurther), 0);
+        return total > 0 ? parseFloat(((active / total) * 100).toFixed(1)) : 0;
+      });
+      const ctxLine = document.getElementById('lineChartCanvas').getContext('2d');
+      chartInstances['line'] = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+          labels: TAHUN_LIST.map(y => `${y}`),
+          datasets: [{
+            label: 'Kadar Kebolehpasaran (%)',
+            data: yearsData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 3,
+            pointBackgroundColor: '#10b981',
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textColor } } },
+          scales: {
+            y: { grid: { color: gridColor }, ticks: { color: textColor }, min: 50, max: 100 },
+            x: { grid: { color: 'transparent' }, ticks: { color: textColor } }
+          }
+        }
+      });
+
+      // --- CARTA 2: RADAR CHART ---
+      safeDestroy('radar');
+      const radarRates = TAHAP_PENGAJIAN.map(lvl => {
+        const lvlData = data.filter(d => d.studyLevel === lvl);
+        const total = lvlData.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+        const active = lvlData.reduce((acc, curr) => acc + (curr.overallEmployed + curr.studyFurther), 0);
+        return total > 0 ? parseFloat(((active / total) * 100).toFixed(1)) : 0;
+      });
+      const ctxRadar = document.getElementById('radarChartCanvas').getContext('2d');
+      chartInstances['radar'] = new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+          labels: TAHAP_PENGAJIAN,
+          datasets: [{
+            label: 'Kebolehpasaran (%)',
+            data: radarRates,
+            backgroundColor: 'rgba(236, 72, 153, 0.2)',
+            borderColor: '#ec4899',
+            pointBackgroundColor: '#ec4899',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textColor } } },
+          scales: {
+            r: {
+              angleLines: { color: gridColor },
+              grid: { color: gridColor },
+              pointLabels: { color: textColor, font: { size: 10, weight: 'bold' } },
+              ticks: { display: false },
+              min: 50,
+              max: 100
+            }
+          }
+        }
+      });
+
+      // --- CARTA 3: BAR CHART (GAJI) ---
+      safeDestroy('bar');
+      const uniSalaries = UNIVERSITI_LIST.map(uni => {
+        const uniData = data.filter(d => d.university === uni.name);
+        let totalSalarySum = 0;
+        let totalEmployed = 0;
+        uniData.forEach(item => {
+          totalSalarySum += item.averageSalary * item.overallEmployed;
+          totalEmployed += item.overallEmployed;
+        });
+        return totalEmployed > 0 ? Math.round(totalSalarySum / totalEmployed) : 0;
+      });
+      const ctxBar = document.getElementById('barChartCanvas').getContext('2d');
+      chartInstances['bar'] = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: UNIVERSITI_LIST.map(u => u.short),
+          datasets: [{
+            label: 'Purata Gaji (RM)',
+            data: uniSalaries,
+            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+            hoverBackgroundColor: '#6366f1',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textColor } } },
+          scales: {
+            y: { grid: { color: gridColor }, ticks: { color: textColor } },
+            x: { grid: { color: 'transparent' }, ticks: { color: textColor } }
+          }
+        }
+      });
+
+      // --- CARTA 4: STACKED BAR CHART ---
+      safeDestroy('stacked');
+      const employedData = [];
+      const studyFurtherData = [];
+      const entrepreneurData = [];
+      const unemployedData = [];
+
+      UNIVERSITI_LIST.forEach(uni => {
+        const uniData = data.filter(d => d.university === uni.name);
+        const total = uniData.reduce((acc, curr) => acc + curr.totalGraduates, 0) || 1;
+        
+        const emp = uniData.reduce((acc, curr) => acc + curr.employed, 0);
+        const further = uniData.reduce((acc, curr) => acc + curr.studyFurther, 0);
+        const entre = uniData.reduce((acc, curr) => acc + curr.entrepreneur, 0);
+        const unemp = uniData.reduce((acc, curr) => acc + curr.unemployed, 0);
+
+        employedData.push(parseFloat(((emp / total) * 100).toFixed(1)));
+        studyFurtherData.push(parseFloat(((further / total) * 100).toFixed(1)));
+        entrepreneurData.push(parseFloat(((entre / total) * 100).toFixed(1)));
+        unemployedData.push(parseFloat(((unemp / total) * 100).toFixed(1)));
+      });
+
+      const ctxStacked = document.getElementById('stackedChartCanvas').getContext('2d');
+      chartInstances['stacked'] = new Chart(ctxStacked, {
+        type: 'bar',
+        data: {
+          labels: UNIVERSITI_LIST.map(u => u.short),
+          datasets: [
+            { label: 'Bekerja Tradisional (%)', data: employedData, backgroundColor: '#3b82f6' },
+            { label: 'Sambung Belajar (%)', data: studyFurtherData, backgroundColor: '#a855f7' },
+            { label: 'Usahawan (%)', data: entrepreneurData, backgroundColor: '#eab308' },
+            { label: 'Belum Bekerja (%)', data: unemployedData, backgroundColor: '#f43f5e' }
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: textColor, boxWidth: 12 } } },
+          scales: {
+            x: { stacked: true, grid: { color: 'transparent' }, ticks: { color: textColor } },
+            y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor }, max: 100 }
+          }
+        }
+      });
+
+      // --- CARTA 5: DONUT CHART ---
+      safeDestroy('donut');
+      const indCounts = INDUSTRI_LIST.map(ind => {
+        return data.filter(d => d.industry === ind).reduce((acc, curr) => acc + curr.totalGraduates, 0);
+      });
+      const ctxDonut = document.getElementById('donutChartCanvas').getContext('2d');
+      chartInstances['donut'] = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: INDUSTRI_LIST,
+          datasets: [{
+            data: indCounts,
+            backgroundColor: ['#14b8a6', '#6366f1', '#f59e0b', '#3b82f6', '#ec4899', '#10b981', '#8b5cf6'],
+            borderWidth: isDark ? 2 : 1,
+            borderColor: isDark ? '#1e293b' : '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { color: textColor, boxWidth: 10, font: { size: 9 } } }
+          }
+        }
+      });
+
+      // --- CARTA 6: SCATTER PLOT ---
+      safeDestroy('scatter');
+      const scatterPoints = [];
+      UNIVERSITI_LIST.forEach(uni => {
+        TAHUN_LIST.forEach(yr => {
+          const subset = data.filter(d => d.university === uni.name && d.year === yr);
+          if (subset.length > 0) {
+            const grads = subset.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+            let totalSalarySum = 0;
+            let totalEmployed = 0;
+            subset.forEach(item => {
+              totalSalarySum += item.averageSalary * item.overallEmployed;
+              totalEmployed += item.overallEmployed;
+            });
+            const avgSal = totalEmployed > 0 ? Math.round(totalSalarySum / totalEmployed) : 0;
+            if (grads > 0 && avgSal > 0) {
+              scatterPoints.push({ x: grads, y: avgSal, uni: uni.short, year: yr });
+            }
+          }
+        });
+      });
+      const ctxScatter = document.getElementById('scatterChartCanvas').getContext('2d');
+      chartInstances['scatter'] = new Chart(ctxScatter, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Universiti-Tahun',
+            data: scatterPoints,
+            backgroundColor: '#f59e0b',
+            pointRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: textColor } },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const raw = context.raw;
+                  return `${raw.uni} (${raw.year}): ${raw.x} Graduan | RM${raw.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Jumlah Graduan', color: textColor }, grid: { color: gridColor }, ticks: { color: textColor } },
+            y: { title: { display: true, text: 'Gaji Kasar (RM)', color: textColor }, grid: { color: gridColor }, ticks: { color: textColor } }
+          }
+        }
+      });
+
+      // --- SKeG 7: RENDERING HEATMAP GRID ---
+      renderHeatmapGrid(data);
+    }
+
+    // --- RENDERING HEATMAP SECARA MANUAL ---
+    function renderHeatmapGrid(data) {
+      const heatmapContainer = document.getElementById('heatmap-grid');
+      heatmapContainer.innerHTML = '';
+
+      UNIVERSITI_LIST.forEach(uni => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = "flex items-center justify-between text-xs border-b border-slate-200/60 dark:border-slate-800/40 pb-1.5";
+
+        let blocksHTML = `<span class="font-semibold w-16 text-slate-700 dark:text-slate-300">${uni.short}</span>`;
+        blocksHTML += `<div class="flex gap-1.5 flex-1 justify-end">`;
+
+        TAHUN_LIST.forEach(yr => {
+          const subset = data.filter(d => d.university === uni.name && d.year === yr);
+          const total = subset.reduce((acc, curr) => acc + curr.totalGraduates, 0);
+          const active = subset.reduce((acc, curr) => acc + (curr.overallEmployed + curr.studyFurther), 0);
+          const rate = total > 0 ? (active / total) * 100 : 0;
+
+          let heatColor = 'bg-slate-200 dark:bg-slate-800 text-slate-500';
+          if (rate >= 92) heatColor = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30';
+          else if (rate >= 85) heatColor = 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25';
+          else if (rate >= 78) heatColor = 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/25';
+          else if (rate > 0) heatColor = 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25';
+
+          blocksHTML += `
+            <div
+              class="w-11 py-1 rounded text-center text-[10px] ${heatColor}"
+              title="${uni.short} (${yr}): ${rate.toFixed(1)}%"
+            >
+              ${rate > 0 ? `${rate.toFixed(0)}%` : '-'}
+            </div>
+          `;
+        });
+
+        blocksHTML += `</div>`;
+        rowDiv.innerHTML = blocksHTML;
+        heatmapContainer.appendChild(rowDiv);
+      });
+    }
+
+    // --- MUAT TURUN PDF (html2pdf) ---
+    function exportPDF() {
+      if (!window.html2pdf) {
+        alert("Pustaka eksport PDF sedang dimuatkan secara dinamik. Sila tunggu seketika dan cuba lagi.");
+        return;
+      }
+
+      state.isExporting = true;
+      
+      const spinner = document.getElementById('spinner-export');
+      const btnText = document.getElementById('btn-export-text');
+      const element = document.getElementById('dashboard-print-area');
+
+      // Aktifkan spinner loading
+      spinner.classList.remove('hidden');
+      btnText.textContent = 'Menjana PDF...';
+
+      const opt = {
+        margin:       [0.4, 0.4, 0.4, 0.4],
+        filename:     `SKeG_Laporan_Kebolehpasaran_Graduan_${state.selectedYear}_${state.selectedUni.replace(/\s+/g, '_')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true, 
+          backgroundColor: state.theme === 'dark' ? '#020617' : '#f8fafc',
+          logging: false
+        },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+      };
+
+      setTimeout(() => {
+        window.html2pdf()
+          .from(element)
+          .set(opt)
+          .save()
+          .then(() => {
+            state.isExporting = false;
+            spinner.classList.add('hidden');
+            btnText.textContent = '📄 Muat Turun PDF (Instant)';
+          })
+          .catch((err) => {
+            console.error("Ralat PDF:", err);
+            state.isExporting = false;
+            spinner.classList.add('hidden');
+            btnText.textContent = '📄 Muat Turun PDF (Instant)';
+          });
+      }, 800);
+    }
+  </script>
+</body>
+</html>
